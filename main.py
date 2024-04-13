@@ -1,5 +1,8 @@
+import sys
 import time
+from typing import Tuple
 
+from PIL import Image
 from pynput.mouse import Button, Controller
 import pynput.keyboard as kbd
 
@@ -28,20 +31,24 @@ PRIMARY_SCREEN_WIDTH_PIXEL = 2560
 # CANVAS_HEIGHT = 768
 CANVAS_WIDTH = 100
 CANVAS_HEIGHT = 100
+# Paint's canvas' offset from the displays TOP LEFT corner
+CANVAS_OFFSET_X = 5
+CANVAS_OFFSET_Y = 144
 
-# initializing the cursor's position to be (0, 0) of paint's canvas
 mouse = Controller()
-mouse.position = (PRIMARY_SCREEN_WIDTH_PIXEL + 5, 144)
-
-for _ in range(CANVAS_HEIGHT):
-    for _ in range(0, CANVAS_WIDTH):
+im = Image.open(sys.argv[1])
+for y in range(CANVAS_HEIGHT):
+    mouse.position = (PRIMARY_SCREEN_WIDTH_PIXEL + CANVAS_OFFSET_X, CANVAS_OFFSET_Y + y)
+    for x in range(0, CANVAS_WIDTH):
         if should_stop:
             break
-        mouse.click(Button.left)
+        px = im.getpixel([y, x])
+        if (px[0] + px[1] + px[2]) / 3 < 50:
+            mouse.click(Button.left)
         mouse.move(1, 0)
         # short delay because
         #  - without it the mouse goes rogue
         #  - Paint can't follow the clicks that fast visually
         time.sleep(0.001)
-    mouse.move(-CANVAS_WIDTH, 0)
-    mouse.move(0, 1)
+else:
+    im.close()
