@@ -1,6 +1,5 @@
 import sys
 import time
-from typing import Tuple
 
 from PIL import Image
 from pynput.mouse import Button, Controller
@@ -20,35 +19,80 @@ def on_press(key):
 kbd_listener = kbd.Listener(on_press=on_press)
 kbd_listener.start()
 
-# short delay so the user can let go of the mouse
-time.sleep(2)
 
-# if Paint is running on the primary display, set this value to 0
-PRIMARY_SCREEN_WIDTH_PIXEL = 2560
+def main():
+    if len(sys.argv) not in [6, 7]:
+        print_help()
+        return
+    image_path = sys.argv[1]
 
-# Paint's canvas dimensions
-# CANVAS_WIDTH = 1024
-# CANVAS_HEIGHT = 768
-CANVAS_WIDTH = 100
-CANVAS_HEIGHT = 100
-# Paint's canvas' offset from the displays TOP LEFT corner
-CANVAS_OFFSET_X = 5
-CANVAS_OFFSET_Y = 144
+    # Paint's canvas dimensions
+    canvas_width = int(sys.argv[2])
+    canvas_height = int(sys.argv[3])
+    # Paint's canvas' offset from the displays TOP LEFT corner
+    canvas_offset_x = int(sys.argv[4])
+    canvas_offset_y = int(sys.argv[5])
 
-mouse = Controller()
-im = Image.open(sys.argv[1])
-for y in range(CANVAS_HEIGHT):
-    mouse.position = (PRIMARY_SCREEN_WIDTH_PIXEL + CANVAS_OFFSET_X, CANVAS_OFFSET_Y + y)
-    for x in range(0, CANVAS_WIDTH):
-        if should_stop:
-            break
-        px = im.getpixel([y, x])
-        if (px[0] + px[1] + px[2]) / 3 < 50:
-            mouse.click(Button.left)
-        mouse.move(1, 0)
-        # short delay because
-        #  - without it the mouse goes rogue
-        #  - Paint can't follow the clicks that fast visually
-        time.sleep(0.001)
-else:
-    im.close()
+    # if Paint is running on the primary display, set this value to 0
+    if len(sys.argv) == 6:
+        primary_screen_width_pixel = 0
+    else:
+        primary_screen_width_pixel = int(sys.argv[6])
+
+    # short delay so the user can let go of the mouse
+    time.sleep(2)
+
+    mouse_controller = Controller()
+    im = Image.open(image_path)
+
+    avg_gray = get_avg_grey_from_image(im)
+
+    for y in range(canvas_height):
+        mouse_controller.position = (primary_screen_width_pixel + canvas_offset_x,
+                                     canvas_offset_y + y)
+        for x in range(0, canvas_width):
+            if should_stop:
+                break
+            px = im.getpixel((x, y))
+            if (px[0] + px[1] + px[2]) / 3 < avg_gray:
+                mouse_controller.click(Button.left)
+            mouse_controller.move(1, 0)
+            # short delay because
+            #  - without it the mouse goes rogue
+            #  - Paint can't follow the clicks that fast visually
+            time.sleep(0.001)
+    else:
+        im.close()
+
+
+def print_help():
+    print('Usage:')
+    print('    python main.py <image_path> <canvas_width> <canvas_height> <canvas_offset_x>'
+          ' <canvas_offset_y> [primary_screen_width]')
+    print('Arguments:')
+    print('    image_path: The path of the image for the application to draw in paint')
+    print("    canvas_width: Width of Paint's canvas")
+    print("    canvas_height: Height of Paint's canvas")
+    print("    canvas_offset_x: Paint's canvas' (TOP-LEFT corner) offset"
+          " from the display's left side in pixels")
+    print("    canvas_offset_y: Paint's canvas' (TOP-LEFT corner) offset"
+          " from the display's top in pixels")
+    print('    primary_screen_width: (Optional) default 0. If Paint is running on the'
+          ' primary display leave out or set to 0.'
+          '\n        This application assumes that Paint is running ON or to the RIGHT of the'
+          ' primary display.'
+          '\n        If Paint is running to the RIGHT of the primary display set to the'
+          ' width of all the displays (in pixels) LEFT to Paint.')
+
+
+def get_avg_grey_from_image(image: Image):
+    grays = []
+    for y in range(image.height):
+        for x in range(image.width):
+            px = image.getpixel((x, y))
+            grays.append((px[0] + px[1] + px[2]) / 3)
+    return sum(grays) / len(grays)
+
+
+if __name__ == '__main__':
+    main()
