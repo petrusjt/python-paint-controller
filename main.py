@@ -82,7 +82,7 @@ def print_help():
           '\n        This application assumes that Paint is running ON or to the RIGHT of the'
           ' primary display.'
           '\n        If Paint is running to the RIGHT of the primary display set to the'
-          ' width of all the displays (in pixels) LEFT to Paint.')
+          ' width of all the displays (in pixels) to the LEFT of Paint.')
 
 
 def get_avg_grey_from_image(image: Image):
